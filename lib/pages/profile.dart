@@ -1,11 +1,54 @@
 import 'dart:convert';
+import 'package:ZAM_GEMS/pages/loginpage.dart';
+import 'package:ZAM_GEMS/pages/settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spa_ceylon/pages/loginpage.dart';
-import 'package:spa_ceylon/pages/settings.dart';
+import 'package:intl/intl.dart';
 import '../main.dart';
 import 'package:http/http.dart' as http;
+
+class CustomerProfile {
+  final String id;
+  final String name;
+  final String nic;
+  final DateTime dob;
+  final String phone;
+  final double gender;
+  final double marital;
+  final String address;
+  final String email;
+  final String nationality;
+  final double city;
+
+  CustomerProfile({
+    required this.id,
+    required this.name,
+    required this.nic,
+    required this.dob,
+    required this.phone,
+    required this.gender,
+    required this.marital,
+    required this.address,
+    required this.email,
+    required this.nationality,
+    required this.city,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'nic': nic,
+    'dob': dob.toIso8601String(), // Convert DateTime to string
+    'phone': phone,
+    'gender': gender,
+    'marital': marital,
+    'address': address,
+    'email': email,
+    'nationality': nationality,
+    'city': city,
+  };
+}
 
 class NationalityData {
   final String id;
@@ -51,7 +94,7 @@ class _ProfileState extends State<Profile> {
 
     // Initialize values from userData
     if (firstUser != null) {
-      userID = firstUser['FK_CustomerId']?.toString();
+      userID = firstUser['customerId']?.toString() ?? '0';
       selectedNationalityId = firstUser['nationality']?.toString();
       selectedCityId = firstUser['city']?.toString();
       // Handle gender conversion
@@ -72,18 +115,14 @@ class _ProfileState extends State<Profile> {
     }
 
     controllers = {
-      'Name': TextEditingController(text: firstUser?['Name'] ?? ''),
-      'NIC': TextEditingController(text: firstUser?['NIC'] ?? ''),
-      'Birthday': TextEditingController(text: firstUser?['DOB'] ?? ''),
-      'Mobile': TextEditingController(text: firstUser?['Phone'] ?? ''),
-      'Telephone (Home)':
-          TextEditingController(text: firstUser?['TelephoneH'] ?? ''),
-      'Telephone (Office)':
-          TextEditingController(text: firstUser?['TelephoneO'] ?? ''),
-      'Address': TextEditingController(text: firstUser?['AddressLine1'] ?? ''),
-      'Fax': TextEditingController(text: firstUser?['FAX'] ?? ''),
+      'Name': TextEditingController(text: firstUser?['name'] ?? ''),
+      'NIC': TextEditingController(text: firstUser?['nic'] ?? ''),
+      'Birthday': TextEditingController(text: firstUser?['dob'] != null
+          ? DateFormat('yyyy-MM-dd').format(DateTime.parse(firstUser!['dob'].toString()))
+          : ''),
+      'Mobile': TextEditingController(text: firstUser?['phone'] ?? ''),
+      'Address': TextEditingController(text: firstUser?['address'] ?? ''),
       'Email': TextEditingController(text: firstUser?['email'] ?? ''),
-      'Promo Coupon': TextEditingController(text: firstUser?['promo'] ?? ''),
     };
 
     _loadNationalities();
@@ -93,7 +132,7 @@ class _ProfileState extends State<Profile> {
   Future<void> _loadNationalities() async {
     try {
       final response = await http.get(
-          Uri.parse('$url/getNationalities.php'));
+          Uri.parse('$url/nationalities'));
       final jsonData = json.decode(response.body);
 
       if (jsonData['status'] == 'success') {
@@ -126,7 +165,7 @@ class _ProfileState extends State<Profile> {
   Future<void> _loadCities() async {
     try {
       final response = await http
-          .get(Uri.parse('$url/getCities.php'));
+          .get(Uri.parse('$url/cities'));
       final jsonData = json.decode(response.body);
 
       if (jsonData['status'] == 'success') {
@@ -179,21 +218,16 @@ class _ProfileState extends State<Profile> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
           child: Column(
             children: [
-              // _buildDropdownField('Title', 'Mr.'),
               _buildTextField('Name', '', 'text'),
               _buildTextField('NIC', '', 'text'),
               _buildTextField('Birthday', '', 'date'),
-              _buildTextField('Mobile', '', 'phone'),
-              _buildTextField('Telephone (Home)', '', 'phone'),
-              _buildTextField('Telephone (Office)', '', 'phone'),
+              _buildTextField('Mobile', '', 'phone',),
               _buildRadioField('Gender', selectedGender),
               _buildRadioField('Martial Status', selectedMaritalStatus),
               _buildTextField('Address', '', 'text'),
               _buildDropdownField('Nationality', nationalities),
               _buildDropdownField('City', cities),
-              _buildTextField('Fax', '', 'phone'),
               _buildTextField('Email', '', 'email'),
-              _buildTextField('Promo Coupon', '', 'text'),
             ],
           ),
         ),
@@ -204,39 +238,36 @@ class _ProfileState extends State<Profile> {
           child: FloatingActionButton(
             onPressed: () async {
               try {
-                // Collect form data
-                final formData = {
-                  'id': userID,
-                  'name': controllers['Name']?.text,
-                  'nic': controllers['NIC']?.text,
-                  'dob': controllers['Birthday']?.text,
-                  'telephoneH': controllers['Telephone (Home)']?.text,
-                  'telephoneO': controllers['Telephone (Office)']?.text,
-                  'address': controllers['Address']?.text,
-                  'fax': controllers['Fax']?.text,
-                  'email': controllers['Email']?.text,
-                  'promo': controllers['Promo Coupon']?.text,
-                  'gender': selectedGender == 'Male' ? 1 : 2,
-                  'marital': selectedMaritalStatus == 'Single' ? 1 : 2,
-                  'nationality': selectedNationalityId,
-                  'city': selectedCityId,
-                };
-
-                final response = await http.post(
-                  Uri.parse('$url/saveProfile.php'),
-                  headers: {"Content-Type": "application/json"},
-                  body: jsonEncode(formData),
+                final profile = CustomerProfile(
+                    id: userID ?? '0',
+                    name: controllers['Name']?.text ?? '',
+                    nic: controllers['NIC']?.text ?? '',
+                    dob: DateTime.parse(controllers['Birthday']?.text ?? ''),
+                    phone: controllers['Phone']?.text ?? '',
+                    gender: double.parse(selectedGender == 'Male' ? '1' : '2'),
+                    marital: double.parse(selectedMaritalStatus == 'Single' ? '1' : '2'),
+                    address: controllers['Address']?.text ?? '',
+                    email: controllers['Email']?.text ?? '',
+                    nationality: selectedNationalityId ?? '',
+                    city: double.parse(selectedCityId ?? '0')
                 );
 
-                if (response.statusCode == 200) {
-                  // Decode the response
-                  Get.to(() => LoginPage(),);
+                final response = await http.post(
+                  Uri.parse('$url/profile'),
+                  headers: {"Content-Type": "application/json"},
+                  body: jsonEncode(profile.toJson()),
+                );
+
+                print('Status code: ${response.statusCode}');
+                print('Response body: ${response.body}');
+                print('Response headers: ${response.headers}');
+                final responseData = jsonDecode(response.body);
+                if(response.statusCode == 200 && responseData['status'] == 'success') {
+                  // Get.to(() => LoginPage());
                 } else {
-                  print('Server error: ${response.statusCode}');
-                  // Show an error message for non-200 responses
+                  print('Error: ${responseData['message']}');
                 }
               } catch (e) {
-                // Handle errors
                 print('Error saving profile: $e');
               }
             },

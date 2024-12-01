@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:ZAM_GEMS/main.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:spa_ceylon/main.dart';
 import 'dart:convert';
 import '../pages/homepage.dart';
 import '../pages/loginpage.dart';
@@ -94,11 +94,13 @@ class LoginController extends GetxController {
   }
 
   Future<void> _attemptLogin() async {
-    final uri = Uri.parse('$url/getCustomerDetails.php?phone=${mobileNumber.value}');
+    final uri = Uri.parse('$url/customer');
 
     final response = await http.get(
-      uri,
-      headers: {'Accept-Encoding': 'gzip'},
+      Uri.parse('$uri?phone=${mobileNumber.value}'),
+      headers: {
+        'Accept-Encoding': 'gzip'
+      },
     ).timeout(
       Duration(seconds: timeoutSeconds),
       onTimeout: () => throw TimeoutException('Connection timeout after $timeoutSeconds seconds'),
@@ -115,10 +117,9 @@ class LoginController extends GetxController {
 
     if (responseData['status'] == 'success' && responseData['data'] != null) {
       print("Login successful");
-      final List<dynamic> userList = responseData['data'];
-      await UserDataManager.saveUserDataList(userList);
-      // Navigate to HomePage with the list
-      await Get.off(() => HomePage(), arguments: userList);
+      final List<dynamic> transactions = responseData['data'];
+      await UserDataManager.saveUserDataList(transactions);
+      await Get.off(() => HomePage(), arguments: transactions);
     } else {
       throw Exception(responseData['message'] ?? "No user found for this number");
     }

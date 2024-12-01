@@ -1,7 +1,7 @@
+import 'package:ZAM_GEMS/pages/register.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart'; // Ensure GetX is imported
-import 'package:spa_ceylon/pages/register.dart';
 
 import '../controllers/login_controller.dart';
 import '../main.dart'; // Ensure this imports the necessary files/widgets

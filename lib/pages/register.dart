@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../main.dart';
 import 'loginpage.dart';
+import 'package:intl/intl.dart';
 
 class NationalityData {
   final String id;
@@ -33,6 +34,17 @@ class _SignupPageState extends State<SignupPage> {
   bool isLoadingCities = true;
   List<NationalityData> nationalities = [];
   List<CityData> cities = [];
+  String? _gender = 'Male';
+  String? _maritalStatus = 'Single';
+  final _formKey = GlobalKey<FormState>();
+  DateTime? _selectedDate;
+
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _mobileController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _nicController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
 
   @override
   void initState() {
@@ -41,28 +53,43 @@ class _SignupPageState extends State<SignupPage> {
     _loadCities();
   }
 
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _mobileController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _nicController.dispose();
+    _dobController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dobController.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
+  }
+
   Future<void> _loadNationalities() async {
     try {
-      final response = await http.get(
-          Uri.parse('$url/getNationalities.php'));
+      final response = await http.get(Uri.parse('$url/nationalities'));
       final jsonData = json.decode(response.body);
 
       if (jsonData['status'] == 'success') {
         setState(() {
-          // Assuming your nationality column is named 'nationality'
-          // Adjust the field name if different
           nationalities = (jsonData['data'] as List).map((item) => NationalityData(
             id: item['nationality_id'].toString(),
             name: item['nationality_name'].toString(),
           )).toList();
-
-          // Set the selected nationality based on the ID from userData
-          if (selectedNationalityId != null) {
-            selectedNationality = nationalities.firstWhere(
-                  (nat) => nat.id == selectedNationalityId,
-              orElse: () => nationalities.first,
-            );
-          }
           isLoadingNationalities = false;
         });
       }
@@ -76,8 +103,7 @@ class _SignupPageState extends State<SignupPage> {
 
   Future<void> _loadCities() async {
     try {
-      final response = await http
-          .get(Uri.parse('$url/getCities.php'));
+      final response = await http.get(Uri.parse('$url/cities'));
       final jsonData = json.decode(response.body);
 
       if (jsonData['status'] == 'success') {
@@ -86,14 +112,6 @@ class _SignupPageState extends State<SignupPage> {
             id: item['city_id'].toString(),
             name: item['city_name'].toString(),
           )).toList();
-
-          // Set the selected city based on the ID from userData
-          if (selectedCityId != null) {
-            selectedCity = cities.firstWhere(
-                  (city) => city.id == selectedCityId,
-              orElse: () => cities.first,
-            );
-          }
           isLoadingCities = false;
         });
       }
@@ -105,229 +123,80 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-  String? _gender = 'Male';
-  final _formKey = GlobalKey<FormState>();
+  Future<void> _signup() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (selectedNationalityId == null || selectedCityId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select nationality and city')),
+      );
+      return;
+    }
 
-  // Controllers for text fields
-  final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _mobileController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _reenterEmailController = TextEditingController();
+    try {
+      final response = await http.post(
+        Uri.parse('$url/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'Name': _fullNameController.text,
+          'Phone': _mobileController.text,
+          'Email': _emailController.text,
+          'Address': _addressController.text,
+          'NIC': _nicController.text,
+          'DOB': _selectedDate?.toIso8601String(),
+          'Gender': _gender == 'Male' ? 1 : 2,
+          'MaritalStatus': _maritalStatus == 'Single' ? 1 : 2,
+          'Nationality': selectedNationalityId,
+          'City': int.parse(selectedCityId!)
+        }),
+      );
 
-  @override
-  void dispose() {
-    // Dispose controllers when not needed to avoid memory leaks
-    _fullNameController.dispose();
-    _mobileController.dispose();
-    _emailController.dispose();
-    _reenterEmailController.dispose();
-    super.dispose();
+      final result = json.decode(response.body);
+      if (result['status'] == 'success') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration successful')),
+        );
+        Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => LoginPage()),
+        );
+      } else {
+        throw Exception(result['message']);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration failed: ${e.toString()}')),
+      );
+    }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BackgroundScaffold(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: 250, // Set the height of the container
-              width: double.infinity, // Optional: Set width to fill the parent
-              child: Stack(
-                fit: StackFit.expand, // Make the stack fill the container
-                children: [
-                  Image.asset(
-                    'assets/colourback.jpg',
-                    fit: BoxFit
-                        .cover, // Ensure the image covers the entire container
-                  ),
-                  Container(
-                    margin: EdgeInsets.only(top: 30.0),
-                    child: Center(
-                      child: Image.asset(
-                        'assets/logo.png',
-                        height: 230,
-                        // Set the height of the image
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5), // Form background
-                  borderRadius: BorderRadius.circular(10), // Rounded edges
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(15.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTextField(
-                          labelText: 'Full Name:',
-                          hintText: 'Enter your full name',
-                        ),
-                        const SizedBox(height: 10),
-                        // Mobile Field
-                        _buildTextField(
-                          labelText: 'Mobile:',
-                          hintText: 'Enter your mobile number',
-                          keyboardType: TextInputType.phone,
-                        ),
-                        const SizedBox(height: 10),
-                        // Email Field
-                        _buildTextField(
-                          labelText: 'Mail:',
-                          hintText: 'Enter your email',
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 10),
-                        // Re-enter Email Field
-                        _buildTextField(
-                          labelText: 'Mail (Re-enter):',
-                          hintText: 'Re-enter your email',
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 10),
-                        // Nationality Dropdown
-                        _buildDropdownField('Nationality', nationalities),
-                        _buildDropdownField('City', cities),
-                        const SizedBox(height: 10),
-                        // Gender Selection
-                        const Text(
-                          'Gender:',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: RadioListTile<String>(
-                                title: const Text('Male'),
-                                value: 'Male',
-                                activeColor: Colors.amber,
-                                groupValue: _gender,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _gender = value;
-                                  });
-                                },
-                                visualDensity: VisualDensity
-                                    .compact, // Reduces the vertical padding
-                              ),
-                            ),
-                            Expanded(
-                              child: RadioListTile<String>(
-                                title: const Text('Female'),
-                                value: 'Female',
-                                activeColor: Colors.amber,
-                                groupValue: _gender,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _gender = value;
-                                  });
-                                },
-                                visualDensity: VisualDensity
-                                    .compact, // Reduces the vertical padding
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // Signup Button
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(
-              // width: 180.0, // Full-width button
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber, // Set the button color
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-                onPressed: () {
-                  // Handle login action
-                },
-                child: const Text(
-                  'SIGNUP',
-                  style: TextStyle(fontSize: 18, color: Colors.black),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // Sign up text with clickable "SignUp"
-            RichText(
-              text: TextSpan(
-                text: "Already have an account? ",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontStyle: FontStyle.italic,
-                ),
-                children: [
-                  TextSpan(
-                    text: 'Login',
-                    style: const TextStyle(
-                      color: Colors.amber, // Link color
-                      fontStyle: FontStyle.normal,
-                    ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => LoginPage()),
-                        );
-                      },
-                    // Handle sign-up action
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 25),
-
-            // Powered by myPOS at the bottom
-            Padding(
-              padding: const EdgeInsets.only(bottom: 15.0),
-              child: Text(
-                'Powered by Ceylon Innovations',
-                style: TextStyle(color: Colors.white.withOpacity(0.8)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Reusable TextFormField with consistent styling
   Widget _buildTextField({
     required String labelText,
     String? hintText,
     TextInputType keyboardType = TextInputType.text,
-    String? initialValue,
+    TextEditingController? controller,
+    bool readOnly = false,
+    VoidCallback? onTap,
   }) {
     return TextFormField(
+      controller: controller,
       decoration: _buildInputDecoration(labelText, hintText: hintText),
       keyboardType: keyboardType,
-      initialValue: initialValue,
+      readOnly: readOnly,
+      onTap: onTap,
+      validator: (value) {
+        if (value?.isEmpty ?? true) return '$labelText is required';
+        if (labelText.contains('Mail') &&
+            !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
+          return 'Invalid email format';
+        }
+        if (labelText.contains('Mobile') &&
+            !RegExp(r'^[0-9+]+$').hasMatch(value!)) {
+          return 'Invalid mobile number';
+        }
+        return null;
+      },
     );
   }
 
-  // Input decoration for TextFormFields
   InputDecoration _buildInputDecoration(String labelText, {String? hintText}) {
     return InputDecoration(
       labelText: labelText,
@@ -340,11 +209,11 @@ class _SignupPageState extends State<SignupPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
-        borderSide: const BorderSide(
-            color: Colors.amber, width: 1.5), // Color when input is focused
+        borderSide: const BorderSide(color: Colors.amber, width: 1.5),
       ),
     );
   }
+
   Widget _buildDropdownField(String label, List<dynamic> items) {
     bool isLoading = label == 'Nationality' ? isLoadingNationalities : isLoadingCities;
     dynamic selectedValue = label == 'Nationality' ? selectedNationality : selectedCity;
@@ -381,7 +250,7 @@ class _SignupPageState extends State<SignupPage> {
                   : DropdownButton<dynamic>(
                 value: selectedValue,
                 isExpanded: true,
-                underline: SizedBox(), // Removes the underline
+                underline: const SizedBox(),
                 hint: Text(
                   'Select $label',
                   style: const TextStyle(color: Colors.black),
@@ -414,4 +283,221 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return BackgroundScaffold(
+      child: SingleChildScrollView(
+      child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+      SizedBox(
+      height: 250,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/colourback.jpg',
+            fit: BoxFit.cover,
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 30.0),
+            child: Center(
+              child: Image.asset(
+                'assets/logo.png',
+                height: 230,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+    Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Container(
+    decoration: BoxDecoration(
+    color: Colors.white.withOpacity(0.5),
+    borderRadius: BorderRadius.circular(10),
+    ),
+    child: Padding(
+    padding: const EdgeInsets.all(15.0),
+    child: Form(
+    key: _formKey,
+    child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+    _buildTextField(
+    labelText: 'Full Name',
+    hintText: 'Enter your full name',
+    controller: _fullNameController,
+    ),
+    const SizedBox(height: 10),
+    _buildTextField(
+    labelText: 'Mobile',
+    hintText: 'Enter your mobile number',
+    keyboardType: TextInputType.phone,
+    controller: _mobileController,
+    ),
+    const SizedBox(height: 10),
+    _buildTextField(
+    labelText: 'Mail',
+    hintText: 'Enter your email',
+    keyboardType: TextInputType.emailAddress,
+    controller: _emailController,
+    ),
+    const SizedBox(height: 10),
+    _buildTextField(
+    labelText: 'Address',
+    hintText: 'Enter your address',
+    controller: _addressController,
+    ),
+    const SizedBox(height: 10),
+    _buildTextField(
+    labelText: 'NIC',
+    hintText: 'Enter your NIC',
+    controller: _nicController,
+    ),
+    const SizedBox(height: 10),
+    _buildTextField(
+    labelText: 'Birthday',
+    controller: _dobController,
+    readOnly: true,
+    onTap: () => _selectDate(context),
+    ),
+    const SizedBox(height: 10),
+    _buildDropdownField('Nationality', nationalities),
+    _buildDropdownField('City', cities),
+    const SizedBox(height: 10),
+    const Text(
+    'Gender:',
+    style: TextStyle(fontSize: 13, color: Colors.black),
+    ),
+    Row(
+    children: [
+    Expanded(
+    child: RadioListTile<String>(
+    title: const Text('Male'),
+    value: 'Male',
+    activeColor: Colors.amber,
+    groupValue: _gender,
+    onChanged: (value) {
+    setState(() {
+    _gender = value;
+    });
+    },
+    visualDensity: VisualDensity.compact,
+    ),
+    ),
+    Expanded(
+    child: RadioListTile<String>(
+    title: const Text('Female'),
+    value: 'Female',
+    activeColor: Colors.amber,
+    groupValue: _gender,
+    onChanged: (value) {
+    setState(() {
+    _gender = value;
+    });
+    },
+    visualDensity: VisualDensity.compact,
+    ),
+    ),
+    ],
+    ),
+    const Text(
+    'Status:',
+    style: TextStyle(fontSize: 13, color: Colors.black),
+    ),
+    Row(
+    children: [
+    Expanded(
+    child: RadioListTile<String>(
+    title: const Text('Married'),
+    value: 'Married',
+    activeColor: Colors.amber,
+    groupValue: _maritalStatus,
+    onChanged: (value) {
+    setState(() {
+    _maritalStatus = value;
+    });
+    },
+    visualDensity: VisualDensity.compact,
+    ),
+    ),
+    Expanded(
+    child: RadioListTile<String>(
+    title: const Text('Single'),
+    value: 'Single',
+    activeColor: Colors.amber,
+    groupValue: _maritalStatus,
+    onChanged: (value) {
+    setState(() {
+    _maritalStatus = value;
+    });
+    },
+    visualDensity: VisualDensity.compact,
+    ),
+    ),
+    ],
+    ),
+    ],
+    ),
+    ),
+    ),
+    ),
+    ),
+    SizedBox(
+    child: ElevatedButton(
+    style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.amber,
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(15),
+    ),
+    ),
+    onPressed: _signup,
+    child: const Text(
+    'SIGNUP',
+    style: TextStyle(fontSize: 18, color: Colors.black),
+    ),
+    ),
+    ),
+    const SizedBox(height: 10),
+    RichText(
+    text: TextSpan(
+    text: "Already have an account? ",
+      style: const TextStyle(
+        color: Colors.white,
+        fontStyle: FontStyle.italic,
+      ),
+      children: [
+        TextSpan(
+          text: 'Login',
+          style: const TextStyle(
+            color: Colors.amber,
+            fontStyle: FontStyle.normal,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+              );
+            },
+        ),
+      ],
+    ),
+    ),
+        const SizedBox(height: 25),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 15.0),
+          child: Text(
+            'Powered by Ceylon Innovations',
+            style: TextStyle(color: Colors.white.withOpacity(0.8)),
+          ),
+        ),
+      ],
+      ),
+      ),
+    );
+  }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../main.dart'; // Ensure this imports the necessary files/widgets
+import '../main.dart';
 
 class NewArrivals extends StatelessWidget {
   const NewArrivals({super.key});
@@ -8,11 +7,24 @@ class NewArrivals extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BackgroundScaffold(
-        child:AppBar(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
           backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,// Set transparent to show the image
+          foregroundColor: Colors.white,
           title: const Text("New Arrivals"),
-        )
+        ),
+        body: const Center(
+          child: Text(
+            "Not Available",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontFamily: 'Times New Roman',
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

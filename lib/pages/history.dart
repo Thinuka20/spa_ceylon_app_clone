@@ -20,9 +20,9 @@ class _HistoryState extends State<History> {
     List<Widget> invoiceWidgets = [];
     for (var invoice in invoiceData) {
       String formattedDate = '';
-      if (invoice['pDate'] != null) {
+      if (invoice['purchaseDate'] != null) {
         // Parse the date
-        DateTime dateTime = DateTime.parse(invoice['pDate']);
+        DateTime dateTime = DateTime.parse(invoice['purchaseDate']);
 
         // Format the date to 'yyyy-MM-dd' or any format you like
         formattedDate = DateFormat('yyyy-MM-dd').format(dateTime);
@@ -50,14 +50,14 @@ class _HistoryState extends State<History> {
                     ),
                   ),
                   Text(
-                    '+${invoice['SKYPoints']}',
+                    '+${invoice['skyPoints']}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
-                    '-${invoice['rPoints']}',
+                    '-${invoice['redeemPoints']}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -67,7 +67,7 @@ class _HistoryState extends State<History> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Invoice No: ${invoice['SaleID']}',
+                'Invoice No: ${invoice['saleId']}',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.red.shade400,
@@ -75,14 +75,14 @@ class _HistoryState extends State<History> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Location: ${invoice['Outlet']}',
+                'Location: ${invoice['outlet']}',
                 style: const TextStyle(
                   fontSize: 16,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Price: ${invoice['Amount']}',
+                'Price: ${invoice['amount']}',
                 style: const TextStyle(
                   fontSize: 16,
                 ),

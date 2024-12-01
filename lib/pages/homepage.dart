@@ -1,212 +1,309 @@
 import 'dart:convert';
+import 'package:ZAM_GEMS/pages/history.dart';
+import 'package:ZAM_GEMS/pages/newarrivals.dart';
+import 'package:ZAM_GEMS/pages/offers.dart';
+import 'package:ZAM_GEMS/pages/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spa_ceylon/pages/history.dart';
-import 'package:spa_ceylon/pages/newarrivals.dart';
-import 'package:spa_ceylon/pages/offers.dart';
-import 'package:spa_ceylon/pages/profile.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../controllers/login_controller.dart';
+import 'package:http/http.dart' as http;
 import '../main.dart';
+import 'contactus.dart';
 import 'locations.dart';
 import 'loyaltycard.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   List<dynamic> userData = [];
   Map<String, dynamic>? firstUser;
+  bool isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    _initializeUserData();
+    WidgetsBinding.instance.addObserver(this);
+    _loadUserData();
   }
 
-  void _initializeUserData() {
-    // Get the list from arguments
-    userData = Get.arguments ?? [];
-    // Get the first user if available
-    firstUser = userData.isNotEmpty ? userData[0] : null;
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadUserData();
+    }
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Get the initial data from arguments to get the phone number
+      final args = Get.arguments ?? [];
+      if (args.isEmpty || args[0]['phone'] == null) {
+        setState(() {
+          isLoading = false;
+          userData = [];
+          firstUser = null;
+        });
+        return;
+      }
+
+      String phone = args[0]['phone'];
+
+      final response = await http.get(
+        Uri.parse('$url/customer?phone=$phone'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'success' && data['data'] != null && data['data'].isNotEmpty) {
+          setState(() {
+            userData = data['data'];
+            firstUser = userData[0];
+            // Instead of setting Get.arguments directly, we'll pass the updated data through navigation
+          });
+        } else {
+          setState(() {
+            userData = [];
+            firstUser = null;
+          });
+          Get.snackbar(
+            'Error',
+            'No user data found',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+        }
+      } else {
+        throw Exception('Failed to load user data');
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to load user data',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void navigateToPage(Widget page) {
+    // Pass the current userData to the next page
+    Get.to(
+          () => page,
+      arguments: userData,
+      preventDuplicates: false,
+    )?.then((value) {
+      // When returning, reload the data
+      _loadUserData();
+    });
+  }
+
+  void reloadCurrentPage() {
+    // Reload the current page with updated data
+    Get.off(
+          () => const HomePage(),
+      arguments: userData,
+      preventDuplicates: false,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BackgroundScaffold(
-      child: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 250,
-                    width: double.infinity,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.asset(
-                          'assets/colourback.jpg',
-                          fit: BoxFit.cover,
-                        ),
-                        Container(
-                          margin: EdgeInsets.only(top: 30.0),
-                          child: Center(
-                            child: Image.asset(
-                              'assets/logo.png',
-                              height: 230,
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await _loadUserData();
+          reloadCurrentPage(); // Reload the page after data is fetched
+        },
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+            : Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      height: 250,
+                      width: double.infinity,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(
+                            'assets/colourback.jpg',
+                            fit: BoxFit.cover,
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(top: 30.0),
+                            child: Center(
+                              child: Image.asset(
+                                'assets/logo.png',
+                                height: 230,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 30),
-                    child: Text(
-                      "AYUBOWAN!",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Times New Roman',
-                        color: Colors.white,
+                        ],
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 25.0),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Card(
-                          color: Colors.black.withOpacity(0.7),
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 0),
-                          shape: RoundedRectangleBorder(
-                            side:
-                                const BorderSide(color: Colors.amber, width: 2),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: 40.0,
-                              top: 20.0,
-                              left: 20.0,
-                              right: 20.0,
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  "${firstUser?['Name'] ?? 'N/A'}",
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontFamily: 'Times New Roman',
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.amber,
-                                  ),
-                                ),
-                                Text(
-                                  "ID ${firstUser?['FK_CustomerId'] ?? 'N/A'}",
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    color: Colors.amber,
-                                    fontFamily: 'Times New Roman',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 30),
+                      child: Text(
+                        "AYUBOWAN!",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Times New Roman',
+                          color: Colors.white,
                         ),
-                        Positioned(
-                          bottom: -25,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: SizedBox(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: Size(180, 0),
-                                  backgroundColor: Colors.amber,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
+                      ),
+                    ),
+                    if (firstUser != null) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 25.0),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Card(
+                              color: Colors.black.withOpacity(0.7),
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 0),
+                              shape: RoundedRectangleBorder(
+                                side: const BorderSide(color: Colors.amber, width: 2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: 40.0,
+                                  top: 20.0,
+                                  left: 20.0,
+                                  right: 20.0,
                                 ),
-                                onPressed: () {
-                                  Get.to(() => LoyaltyCard(),
-                                      arguments: Get.arguments);
-                                },
-                                child: Text(
-                                  "${firstUser?['TotalSKYPoints'] ?? '0.00'}",
-                                  style: const TextStyle(
-                                    fontSize: 35,
-                                    color: Colors.black,
-                                    fontFamily: 'Times New Roman',
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      "${firstUser?['name'] ?? 'N/A'}",
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        fontFamily: 'Times New Roman',
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.amber,
+                                      ),
+                                    ),
+                                    Text(
+                                      "ID ${firstUser?['customerId'] ?? 'N/A'}",
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        color: Colors.amber,
+                                        fontFamily: 'Times New Roman',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: -25,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: SizedBox(
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      minimumSize: const Size(180, 0),
+                                      backgroundColor: Colors.amber,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                    ),
+                                    onPressed: () => navigateToPage(const LoyaltyCard()),
+                                    child: Text(
+                                      "${firstUser?['totalSkyPoints'] ?? '0.00'}",
+                                      style: const TextStyle(
+                                        fontSize: 35,
+                                        color: Colors.black,
+                                        fontFamily: 'Times New Roman',
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
+                      ),
+                      const Text(
+                        "SKY Points",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Times New Roman',
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                    GridView.count(
+                      crossAxisCount: 3,
+                      padding: const EdgeInsets.all(8.0),
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      children: [
+                        buildGridItem("Offers", Icons.local_offer, context, const Offers()),
+                        buildGridItem("New Arrivals", Icons.new_releases, context, const NewArrivals()),
+                        buildGridItem("Profile", Icons.person, context, const Profile()),
+                        buildGridItem("Store Locator", Icons.store, context, const Locations()),
+                        buildGridItem("History", Icons.history, context, const History()),
+                        buildGridItem("Contact Us", Icons.contact_mail, context, const EmailLauncherPage()),
                       ],
                     ),
-                  ),
-                  const Text(
-                    "SKY Points",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Times New Roman',
-                      color: Colors.white,
-                    ),
-                  ),
-                  GridView.count(
-                    crossAxisCount: 3,
-                    padding: const EdgeInsets.all(8.0),
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    children: [
-                      buildGridItem("Offers", Icons.local_offer, context,
-                          const Offers(), Get.arguments),
-                      buildGridItem("New Arrivals", Icons.new_releases, context,
-                          const NewArrivals(), Get.arguments),
-                      buildGridItem("Profile", Icons.person, context,
-                          const Profile(), Get.arguments),
-                      buildGridItem("Store Locator", Icons.store, context,
-                          const Locations(), Get.arguments),
-                      buildGridItem("History", Icons.history, context,
-                          const History(), Get.arguments),
-                      buildGridItem("Contact Us", Icons.contact_mail, context,
-                          const EmailLauncherPage(), Get.arguments),
-                    ],
-                  ),
-                  SizedBox(height: 20), // Add some padding before footer
-                ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            width: double.infinity,
-            child: const Text(
-              "Powered by Ceylon Innovations",
-              style: TextStyle(color: Colors.white70),
-              textAlign: TextAlign.center,
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              width: double.infinity,
+              child: const Text(
+                "Powered by Ceylon Innovations",
+                style: TextStyle(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget buildGridItem(String title, IconData icon, BuildContext context,
-      Widget targetPage, List<dynamic> userData) {
+  Widget buildGridItem(String title, IconData icon, BuildContext context, Widget targetPage) {
     return GestureDetector(
-      onTap: () {
-        Get.to(() => targetPage, arguments: userData);
-      },
+      onTap: () => navigateToPage(targetPage),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -233,53 +330,3 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class EmailLauncherPage extends StatelessWidget {
-  const EmailLauncherPage({Key? key}) : super(key: key);
-
-  Future<void> launchEmail() async {
-    final Uri emailUri = Uri(
-      scheme: 'mailto',
-      path: 'thinukachanthula1@gmail.com', // Replace with your email
-      queryParameters: {
-        'subject': 'Support Request',
-        'body': '',
-      },
-    );
-
-    try {
-      if (await canLaunchUrl(emailUri)) {
-        await launchUrl(emailUri);
-      } else {
-        Get.snackbar(
-          'Error',
-          'Could not launch email app',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error launching email: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to open email app',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Launch email immediately when page loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      launchEmail();
-      // Optional: Go back after launching
-      Get.back();
-    });
-
-    // You can either return an empty screen or a loading indicator
-    return Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
-}

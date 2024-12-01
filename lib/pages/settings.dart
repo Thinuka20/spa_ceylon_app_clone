@@ -16,11 +16,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool offersEnabled = true;
   bool newArrivalsEnabled = false;
 
-  void _handleLogout() {
-    Get.reset();
-    Get.offAll(() => LoginPage());
-  }
-
   @override
   Widget build(BuildContext context) {
     return BackgroundScaffold(
@@ -130,27 +125,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 'Log Out',
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            ElevatedButton(
-              onPressed: () {
-                _handleLogout;
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 7),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-              ),
-              child: const Text(
-                'Remove Account',
-                style: TextStyle(
-                  color: Colors.red,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),

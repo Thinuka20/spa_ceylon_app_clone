@@ -33,7 +33,7 @@ class LoyaltyCard extends StatelessWidget {
                       left: 5,
                       bottom: 5, // Rotates text to landscape
                       child: Text(
-                        "${firstUser?['Name'] ?? 'N/A'}\n${firstUser?['Phone'] ?? 'N/A'}",
+                        "${firstUser?['name'] ?? 'N/A'}\n${firstUser?['phone'] ?? 'N/A'}",
                         style: const TextStyle(
                           fontSize: 22,
                           color: Colors.black,
@@ -62,7 +62,7 @@ class LoyaltyCard extends StatelessWidget {
                         quarterTurns:
                         3,
                         child: QrImageView(
-                          data: '${firstUser?['Phone'] ?? 'N/A'}',  // Replace with your data
+                          data: '${firstUser?['phone'] ?? 'N/A'}',  // Replace with your data
                           version: QrVersions.auto,
                           size: 125.0,
                           gapless: false,  // Set to true to disable gaps between squares

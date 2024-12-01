@@ -1,66 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class EmailLauncherPage extends StatelessWidget {
   const EmailLauncherPage({Key? key}) : super(key: key);
 
-  // Method to launch email
-  void launchEmail(BuildContext context) async {
-    final Uri emailUri = Uri(
-      scheme: 'mailto',
-      path: 'thinukachanthula1@gmail.com', // Set the recipient's email
-      queryParameters: {
-        'subject': 'New Inquiry', // Set the email subject
-        'body': 'hi', // Set the email body
-      },
-    );
+  Future<void> launchWebsite() async {
+    final Uri url = Uri.parse('https://zamgems.com/elementor-262/');
 
     try {
-      if (await canLaunchUrl(emailUri)) {
-        await launchUrl(emailUri);
-      } else {
-        _showErrorDialog(context, "Could not launch email client.");
-      }
+      await launchUrl(
+        url,
+        mode: LaunchMode.inAppWebView, // Changed to inAppWebView
+        webViewConfiguration: const WebViewConfiguration(
+          enableJavaScript: true,
+          enableDomStorage: true,
+        ),
+      );
     } catch (e) {
-      _showErrorDialog(context, "An error occurred: $e");
+      debugPrint('Error launching website: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to open website',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
-  }
-
-  // Method to show error dialog
-  void _showErrorDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Error"),
-          content: Text(message),
-          actions: [
-            TextButton(
-              child: Text("OK"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Send Email'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.home),
-            onPressed: () => launchEmail(context), // Launch email when home icon is pressed
+    // Remove the automatic back navigation to prevent GETX routing issue
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      launchWebsite();
+    });
+
+    return WillPopScope(
+      onWillPop: () async {
+        Get.back();
+        return false;
+      },
+      child: const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
           ),
-        ],
-      ),
-      body: Center(
-        child: Text('Press the home icon to send an email'),
+        ),
       ),
     );
   }

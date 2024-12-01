@@ -25,8 +25,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-const String url="http://10.0.2.2:8080/spaceylon";
-// const String url="http://test.htcdistributors.com";
+const String url="http://124.43.70.220:7073/Customer";
 
 class BackgroundScaffold extends StatelessWidget {
   final Widget child;
