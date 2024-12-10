@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Locations extends StatelessWidget {
@@ -10,22 +9,25 @@ class Locations extends StatelessWidget {
     final Uri url = Uri.parse('https://zamgems.com/elementor-262/');
 
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        Get.snackbar(
-          'Error',
-          'Could not launch website',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      }
+      await launchUrl(
+        url,
+        mode: LaunchMode.inAppWebView,
+        webViewConfiguration: const WebViewConfiguration(
+          enableJavaScript: true,
+          enableDomStorage: true,
+        ),
+      );
+      Get.back(); // Navigate back after website is closed
     } catch (e) {
       debugPrint('Error launching website: $e');
       Get.snackbar(
         'Error',
         'Failed to open website',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
+      Get.back(); // Navigate back if there's an error
     }
   }
 
@@ -33,13 +35,8 @@ class Locations extends StatelessWidget {
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       launchWebsite();
-      Get.back();
     });
 
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    return const SizedBox.shrink(); // Empty widget instead of loading screen
   }
 }

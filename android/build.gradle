@@ -10,17 +10,8 @@ subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 subprojects {
-    project.configurations.all {
-        resolutionStrategy.eachDependency { details ->
-            if (details.requested.group == 'org.jetbrains.kotlin') {
-                details.useVersion "1.6.0"
-            }
-        }
-    }
-}
+    project.evaluationDependsOn(":app")
 
-buildscript {
-    ext.kotlin_version = '1.9.24' // Update this line
 }
 
 tasks.register("clean", Delete) {
