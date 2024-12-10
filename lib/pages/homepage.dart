@@ -5,7 +5,6 @@ import 'package:ZAM_GEMS/pages/offers.dart';
 import 'package:ZAM_GEMS/pages/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import '../main.dart';
 import 'contactus.dart';
@@ -243,7 +242,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     ),
                                     onPressed: () => navigateToPage(const LoyaltyCard()),
                                     child: Text(
-                                      "${firstUser?['totalSkyPoints'] ?? '0.00'}",
+                                      "${(firstUser?['totalSkyPoints'] ?? 0.00).toStringAsFixed(2)}",
                                       style: const TextStyle(
                                         fontSize: 35,
                                         color: Colors.black,
