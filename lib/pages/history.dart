@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../main.dart';
+import 'invoice.dart';
 
 class History extends StatefulWidget {
   const History({super.key});
@@ -26,67 +27,75 @@ class _HistoryState extends State<History> {
       }
 
       invoiceWidgets.add(
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          GestureDetector(
+            onTap: () => Get.to(
+                  () => InvoicePdfViewer(),
+              arguments: {
+                'saleId': invoice['saleId'],
+                'outletDataSource': invoice['outletDataSource']
+              },
+            ),            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Date: $formattedDate',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        '+${invoice['skyPoints']}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        '-${invoice['redeemPoints']}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   Text(
-                    'Date: $formattedDate',
-                    style: const TextStyle(
+                    'Invoice No: ${invoice['saleId']}',
+                    style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      color: Colors.red.shade400,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
-                    '+${invoice['skyPoints']}',
+                    'Location: ${invoice['outlet']}',
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
-                    '-${invoice['redeemPoints']}',
+                    'Price: ${invoice['amount']}',
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Invoice No: ${invoice['saleId']}',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.red.shade400,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Location: ${invoice['outlet']}',
-                style: const TextStyle(
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Price: ${invoice['amount']}',
-                style: const TextStyle(
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          )
       );
     }
 
