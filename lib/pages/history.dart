@@ -28,8 +28,13 @@ class _HistoryState extends State<History> {
 
       invoiceWidgets.add(
           GestureDetector(
-            onTap: () => Get.to(() => InvoicePdfViewer(), arguments: invoice['saleId']),
-            child: Container(
+            onTap: () => Get.to(
+                  () => InvoicePdfViewer(),
+              arguments: {
+                'saleId': invoice['saleId'],
+                'outletDataSource': invoice['outletDataSource']
+              },
+            ),            child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.9),
