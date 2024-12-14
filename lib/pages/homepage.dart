@@ -277,7 +277,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         buildGridItem("Profile", Icons.person, context, const Profile()),
                         buildGridItem("Store Locator", Icons.store, context, const Locations()),
                         buildGridItem("History", Icons.history, context, const History()),
-                        buildGridItem("Contact Us", Icons.contact_mail, context, const EmailLauncherPage()),
+                        buildGridItem("Contact Us", Icons.contact_mail, context, const WhatsAppLauncherPage()),
                       ],
                     ),
                     const SizedBox(height: 20),
